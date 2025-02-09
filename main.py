@@ -6,7 +6,7 @@ from telebot import types
 from threading import Thread
 from pybit.unified_trading import HTTP
 from cfg import symb, timeframe, tgtoken, tgID, bykey, bysecret
-from functions import get_price_data, Price, Rsi, BuySellRatio, Last5weeksAndLowprice, get_moscow_time, daily_update, run_schedule, monitor_rsi, process_trade, send_report, get_rsi_and_send_message
+from functions import get_price_data, get_price_or_change, calculate_rsi, get_buy_sell_ratio, get_last_5_weeks_and_low_price, get_moscow_time, daily_update, run_schedule, monitor_rsi, process_trade, send_report, get_rsi_and_send_message
 
 bot = telebot.TeleBot(tgtoken)
 
@@ -22,15 +22,15 @@ def send_welcome(message):
 def send_stat(message):
     user_id = message.chat.id
     try:
-        rsi = Rsi(timeframe)
-        screenshot, lowprice14d = Last5weeksAndLowprice()
-        current_price = Price('price')
+        rsi = calculate_rsi(timeframe)
+        screenshot, lowprice14d = get_price_or_change()
+        current_price = get_price_data('price')
         
         if lowprice14d is None or current_price is None:
             raise ValueError("⚠️ Не удалось получить необходимые данные.")
         
         change_percent = round((float(current_price) - lowprice14d) / lowprice14d * 100, 2)
-        buy_sell_ratio = BuySellRatio(timeframe)
+        buy_sell_ratio = get_buy_sell_ratio(timeframe)
         
         caption = (
             f"📉 Изменение за 14 дней: {change_percent}%\n"
@@ -97,7 +97,7 @@ def trade_btc(message):
 def send_current_price(message):
     user_id = message.chat.id
     try:
-        current_price = Price('price')
+        current_price = get_price_data('price')
         bot.send_message(user_id, f"💲 Текущая цена BTC: {current_price} USDT", parse_mode='Markdown')
     except Exception as e:
         bot.send_message(user_id, f"⚠️ Ошибка при получении текущей цены: {e}")        

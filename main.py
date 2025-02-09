@@ -1,4 +1,5 @@
 import time
+import pytz
 import telebot
 import schedule
 import functions
@@ -23,8 +24,8 @@ def send_stat(message):
     user_id = message.chat.id
     try:
         rsi = calculate_rsi(timeframe)
-        screenshot, lowprice14d = get_price_or_change()
-        current_price = get_price_data('price')
+        screenshot, lowprice14d = get_last_5_weeks_and_low_price()
+        current_price = get_price_or_change('price')
         
         if lowprice14d is None or current_price is None:
             raise ValueError("⚠️ Не удалось получить необходимые данные.")
@@ -97,7 +98,7 @@ def trade_btc(message):
 def send_current_price(message):
     user_id = message.chat.id
     try:
-        current_price = get_price_data('price')
+        current_price = get_price_or_change('price')
         bot.send_message(user_id, f"💲 Текущая цена BTC: {current_price} USDT", parse_mode='Markdown')
     except Exception as e:
         bot.send_message(user_id, f"⚠️ Ошибка при получении текущей цены: {e}")        

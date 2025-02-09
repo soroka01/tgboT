@@ -123,7 +123,7 @@ def get_moscow_time(pytz):
 
 #Запуск ежедневного обновления в 08:30 по МСК
 def daily_update():
-    moscow_time = get_moscow_time()
+    moscow_time = get_moscow_time(pytz)
     if moscow_time.hour == 8 and moscow_time.minute == 30:
         for user_id in tgID:
             try:

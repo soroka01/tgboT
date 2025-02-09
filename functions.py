@@ -218,4 +218,3 @@ def get_rsi_and_send_message(user_id):
         send_report(user_id)
     except Exception as e:
         bot.send_message(user_id, f"⚠️ Ошибка при получении RSI: {e}")
-        

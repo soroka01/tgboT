@@ -19,14 +19,17 @@ bot = TeleBot(tgtoken)
 # Функции для работы с данными пользователя
 
 def load_user_data(user_id):
-    filepath = f"./users/{user_id}.json"
+    filepath = f"/root/TgBots/Bots/users/{user_id}.json"
     if os.path.exists(filepath):
         with open(filepath, "r") as file:
-            return json.load(file)
+            try:
+                return json.load(file)
+            except json.JSONDecodeError:
+                return {}
     return {}
 
 def save_user_data(user_id, data):
-    directory = "./users"
+    directory = "/root/TgBots/Bots/users"
     if not os.path.exists(directory):
         os.makedirs(directory)
     filepath = f"{directory}/{user_id}.json"

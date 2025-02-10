@@ -63,9 +63,9 @@
 
 ## Структура проекта
 
-- [main.py](http://_vscodecontentref_/1) - Основной файл бота, содержащий обработчики команд и сообщений.
-- [functions.py](http://_vscodecontentref_/2) - Вспомогательные функции для работы с данными пользователя, получения данных с рынка и анализа данных.
-- [cfg.py](http://_vscodecontentref_/3) - Конфигурационный файл с настройками бота и API ключами.
+- [main.py]([http://_vscodecontentref_/1](https://github.com/soroka01/tgboT/blob/main/main.py)) - Основной файл бота, содержащий обработчики команд и сообщений.
+- [functions.py]([http://_vscodecontentref_/2](https://github.com/soroka01/tgboT/blob/main/functions.py)) - Вспомогательные функции для работы с данными пользователя, получения данных с рынка и анализа данных.
+- [cfg.py]([http://_vscodecontentref_/3](https://github.com/soroka01/tgboT/blob/main/cfg.py)) - Конфигурационный файл с настройками бота и API ключами.
 
 ## Лицензия
 

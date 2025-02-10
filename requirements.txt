@@ -5,3 +5,4 @@ pyTelegramBotAPI==4.26.0
 requests==2.32.3
 schedule==1.2.2
 telebot==0.0.5
+pytz==2025.1

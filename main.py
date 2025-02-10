@@ -13,6 +13,18 @@ from functions import get_price_data, get_price_or_change, calculate_rsi, get_bu
 # Создание бота
 bot = telebot.TeleBot(tgtoken)
 
+# Константы для сообщений
+WELCOME_MESSAGE = "👋 Добро пожаловать!\nПомощь тут: /help\n\nВыберите действие:"
+HELP_MESSAGE = (
+    "Доступные команды:\n"
+    "/start - Начало работы с ботом\n"
+    "/help - Список доступных команд\n"
+    "📊 Стата - Получить статистику\n"
+    "💸 Бабит - Меню для торговли\n"
+    "🔔 Уведомления - Управление уведомлениями\n"
+    "👤 Аккаунт - Информация об аккаунте\n"
+)
+
 # Функции для работы с пользователями и уведомлениями
 
 def delete_all_price_alerts(message):
@@ -125,18 +137,9 @@ def send_welcome(message):
         alert_button = types.KeyboardButton("🔔 Уведомления")
         account_button = types.KeyboardButton("👤 Аккаунт")
         markup.add(stat_button, babit_button, alert_button, account_button)
-        bot.send_message(message.chat.id, "👋 Добро пожаловать! \n\nВыберите действие:", reply_markup=markup)
+        bot.send_message(message.chat.id, WELCOME_MESSAGE, reply_markup=markup)
     elif message.text == "/help":
-        help_text = (
-            "Доступные команды:\n"
-            "/start - Начало работы с ботом\n"
-            "/help - Список доступных команд\n"
-            "📊 Стата - Получить статистику\n"
-            "💸 Бабит - Меню для торговли\n"
-            "🔔 Уведомления - Управление уведомлениями\n"
-            "👤 Аккаунт - Информация об аккаунте\n"
-        )
-        bot.send_message(message.chat.id, help_text)
+        bot.send_message(message.chat.id, HELP_MESSAGE)
 
 @bot.message_handler(func=lambda message: message.text == "📊 Стата")
 def send_stat(message):
@@ -323,12 +326,10 @@ def back_to_menu_callback(call):
     bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
 
 # Планирование задач
-
 schedule.every().minute.do(daily_update)
 schedule.every().minute.do(check_price_alerts)
 
 # Запуск планировщика в отдельном потоке
-
 def run_schedule():
     while True:
         schedule.run_pending()
@@ -339,4 +340,3 @@ schedule_thread.start()
 
 if __name__ == '__main__':
     bot.polling(none_stop=True)
-

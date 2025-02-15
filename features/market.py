@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import io
 import requests
 from logs.logging_config import logging
-
+ 
 # Создание сессии для работы с Bybit API
 session = HTTP(testnet=False, api_key=bykey, api_secret=bysecret)
 

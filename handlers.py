@@ -180,9 +180,9 @@ def register_handlers(bot, session):
         try:
             btc_balance, usdt_balance = fetch_balance()  # Вызов функции get_balance из features.trade
             balance_message = (
-                f"💰 *Ваш баланс:*\n"
-                f"• BTC: *{btc_balance}*\n"
-                f"• USDT: *{usdt_balance}*"
+                f"💰 Ваш баланс:\n"
+                f"• BTC: {btc_balance}\n"
+                f"• USDT: {usdt_balance}"
             )
             send_message_with_logging(user_id, balance_message, create_back_button("babit"))
         except Exception as e:
@@ -237,9 +237,9 @@ def register_handlers(bot, session):
             btc_balance = response['result']['list'][0]['coin'][0]['walletBalance']
             usdt_balance = response['result']['list'][0]['coin'][1]['walletBalance']
             balance_message = (
-                f"💰 *Ваш баланс:*\n"
-                f"• BTC: *{btc_balance}*\n"
-                f"• USDT: *{usdt_balance}*"
+                f"💰 Ваш баланс:\n"
+                f"• BTC: {btc_balance}\n"
+                f"• USDT: *{usdt_balance}"
             )
         except Exception as e:
             logging.error(f"Ошибка при получении баланса для user_id {user_id}: {e}")
@@ -247,7 +247,7 @@ def register_handlers(bot, session):
         account_message = (
             f"👤 Ваш аккаунт:\n"
             f"• ID: {user_id}\n"
-            f"• Имя: *{user_name}\n\n"
+            f"• Имя: {user_name}\n\n"
             f"{balance_message}"
         )
         send_message_with_logging(user_id, account_message, create_account_menu())

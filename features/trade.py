@@ -1,6 +1,6 @@
 from bot_instance import bot, session
 from logs.logging_config import logging
-
+ 
 # Функция для обработки торговой операции
 def process_trade(message, bot):
     user_id = message.chat.id  # Получение ID пользователя

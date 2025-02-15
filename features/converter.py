@@ -7,7 +7,7 @@ def get_converted_amount(amount, from_currency, to_currency):
     current_price = get_price_or_change('price')
     if current_price is None:
         return "Данные недоступны"
-    
+        
     conversions = {
         ("USD", "BTC"): amount / current_price,
         ("BTC", "USD"): amount * current_price

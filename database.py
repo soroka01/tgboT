@@ -3,7 +3,7 @@ import json
 from contextlib import closing
 from logs.logging_config import logging
 
-DB_PATH = '/qqq/users.db'
+DB_PATH = '/qqq/www/eee/users.db'
 
 def init_db():
     logging.info("Инициализация базы данных")

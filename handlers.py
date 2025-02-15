@@ -9,7 +9,7 @@ from features.news import get_latest_crypto_news
 from cfg import timeframe
 from logs.logging_config import logging
 from functions import save_price_alert, save_rsi_alert, list_price_alerts, list_rsi_alerts, delete_price_alert, delete_all_price_alerts
- 
+
 # Сообщения приветствия и помощи
 WELCOME_MESSAGE = "👋 Добро пожаловать!\nПомощь тут: /help\nВыберите действие:"
 HELP_MESSAGE = "Доступные команды:\n/start - Начало работы с ботом\n/help - Список доступных команд\n📊 Стата - Получить статистику\n💸 Бабит - Меню для торговли\n🔔 Уведомления - Управление уведомлениями\n👤 Аккаунт - Информация об аккаунте\n📰 Новости - Последние новости о криптовалютах\n💱 Конвертер - Конвертация валют"
@@ -245,9 +245,9 @@ def register_handlers(bot, session):
             logging.error(f"Ошибка при получении баланса для user_id {user_id}: {e}")
             balance_message = f"⚠️ Ошибка при получении баланса: {e}"
         account_message = (
-            f"👤 *Ваш аккаунт:*\n"
-            f"• ID: *{user_id}*\n"
-            f"• Имя: *{user_name}*\n\n"
+            f"👤 Ваш аккаунт:\n"
+            f"• ID: {user_id}\n"
+            f"• Имя: *{user_name}\n\n"
             f"{balance_message}"
         )
         send_message_with_logging(user_id, account_message, create_account_menu())

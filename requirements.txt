@@ -1,8 +1,1 @@
-matplotlib==3.10.0
-numpy==2.2.2
-pybit==5.9.0
-pyTelegramBotAPI==4.26.0
-requests==2.32.3
-schedule==1.2.2
-telebot==0.0.5
-pytz==2025.1
+

@@ -1,6 +1,7 @@
 from features.market import get_price_or_change
 from telebot import types
 from bot_instance import bot
+import telebot
 
 # Функция для конвертации валют
 def get_converted_amount(amount, from_currency, to_currency):
@@ -13,19 +14,27 @@ def get_converted_amount(amount, from_currency, to_currency):
         ("BTC", "USD"): amount * current_price
     }
     
-    return conversions.get((from_currency, to_currency), "Неподдерживаемая конвертация")
+    converted_amount = conversions.get((from_currency, to_currency), "Неподдерживаемая конвертация")
+    if isinstance(converted_amount, float):
+        return round(converted_amount, 3)
+    return converted_amount
 
 # Функция для отображения меню конвертации
 def converter_menu(message):
     user_id = message.chat.id
     markup = types.InlineKeyboardMarkup()
     buttons = [
-        ("USD в BTC", "convert_usd_to_btc"),
-        ("BTC в USD", "convert_btc_to_usd"),
-        ("🔙 Назад", "back_to_menu")
+        types.InlineKeyboardButton(text="USD в BTC", callback_data="convert_usd_to_btc"),
+        types.InlineKeyboardButton(text="BTC в USD", callback_data="convert_btc_to_usd"),
+        types.InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu")
     ]
     
-    for text, callback_data in buttons:
-        markup.add(types.InlineKeyboardButton(text, callback_data=callback_data))
+    markup.add(*buttons)
     
-    bot.send_message(user_id, "Выберите конвертацию:", reply_markup=markup)
+    try:
+        bot.edit_message_text(chat_id=user_id, message_id=message.message_id, text="Выберите конвертацию:", reply_markup=markup)
+    except telebot.apihelper.ApiTelegramException as e:
+        if "message is not modified" in str(e):
+            bot.edit_message_reply_markup(chat_id=user_id, message_id=message.message_id, reply_markup=markup)
+        else:
+            bot.send_message(chat_id=user_id, text="Выберите конвертацию:", reply_markup=markup)

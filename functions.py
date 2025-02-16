@@ -7,7 +7,7 @@ from datetime import datetime
 from cfg import timeframe, tgID, rsi_threshold_35, rsi_threshold_30, rsi_threshold_70, rsi_threshold_60
 from logs.logging_config import logging
 from features.market import get_price_or_change, get_buy_sell_ratio, get_last_5_weeks_and_low_price
-from analysis import calculate_rsi
+from features.market import calculate_rsi
 from database import load_user_data, save_user_data, load_user_alerts, save_user_alerts, load_user_rsi_alerts, save_user_rsi_alerts
 from buttons import create_back_button
 from bot_instance import session, bot
@@ -33,7 +33,7 @@ def init_db():
 
 # Функции для отправки отчетов и уведомлений
 
-# Отправка отчета пользователю
+# Отправка отчета пользователям
 def send_report(user_id, rsi, screenshot, lowprice14d, current_price, buy_sell_ratio):
     try:
         change_percent = round((float(current_price) - lowprice14d) / lowprice14d * 100, 2)
@@ -60,7 +60,7 @@ def get_rsi_and_send_message(user_id):
         logging.error(f"Ошибка при получении RSI: {e}")
         bot.send_message(user_id, f"⚠️ Ошибка при получении RSI: {e}")
 
-# Ежедневное обновление
+# Ежедневное обновлени
 def daily_update():
     logging.info("Запуск ежедневного обновления")
     moscow_time = get_moscow_time()
@@ -108,21 +108,10 @@ def process_trade(message):
         bot.send_message(user_id, f"✅ Куплено BTC на {amount_usdt} USDT. Количество: {order['result']['qty']}")
     except Exception as e:
         logging.error(f"Ошибка при обработке торговой операции: {e}")
+        bot.send_message(user_id, f"⚠️ Ошибка при обработке торговой операции: {e}")
 
 def get_latest_crypto_news():
     return "Последние новости о криптовалютах: ..."
-
-def get_converted_amount(amount, from_currency, to_currency):
-    current_price = get_price_or_change('price')
-    if current_price is None:
-        return "Данные недоступны"
-    
-    if from_currency == "USD" and to_currency == "BTC":
-        return amount / current_price
-    elif from_currency == "BTC" and to_currency == "USD":
-        return amount * current_price
-    else:
-        return "Неподдерживаемая конвертация"
 
 def get_trade_history():
     logging.info("Получение истории торговых операций")
@@ -218,12 +207,38 @@ def save_rsi_alert(message):
             bot.send_message(user_id, "Вы не можете создать более 15 подписок на уровни.", reply_markup=create_back_button("notifications"))
             return
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("Единично", callback_data=f"rsi_alert_once_{rsi_level}"))
-        markup.add(types.InlineKeyboardButton("Навсегда", callback_data=f"rsi_alert_permanent_{rsi_level}"))
+        markup.add(types.InlineKeyboardButton(f"RSI < {rsi_level}", callback_data=f"rsi_alert_below_{rsi_level}"))
+        markup.add(types.InlineKeyboardButton(f"RSI > {rsi_level}", callback_data=f"rsi_alert_above_{rsi_level}"))
         markup.add(types.InlineKeyboardButton("Назад", callback_data="alert_back"))
         bot.send_message(user_id, "Выберите тип подписки:", reply_markup=markup)
     except ValueError:
         bot.send_message(user_id, "Введите корректное число.", reply_markup=create_back_button("notifications"))
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("rsi_alert_below_"))
+def rsi_alert_below_callback(call):
+    user_id = call.message.chat.id
+    try:
+        rsi_level = float(call.data.split("_")[3])
+        alerts = load_user_rsi_alerts(user_id)
+        alerts.append({"level": rsi_level, "condition": "below", "permanent": False})
+        save_user_rsi_alerts(user_id, alerts)
+        bot.send_message(user_id, f"Подписка на уровень RSI < {rsi_level} установлена.", reply_markup=create_back_button("notifications"))
+    except ValueError as e:
+        logging.error(f"Ошибка при обработке уровня RSI: {e}")
+        bot.send_message(user_id, "Ошибка при обработке уровня RSI.", reply_markup=create_back_button("notifications"))
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("rsi_alert_above_"))
+def rsi_alert_above_callback(call):
+    user_id = call.message.chat.id
+    try:
+        rsi_level = float(call.data.split("_")[3])
+        alerts = load_user_rsi_alerts(user_id)
+        alerts.append({"level": rsi_level, "condition": "above", "permanent": False})
+        save_user_rsi_alerts(user_id, alerts)
+        bot.send_message(user_id, f"Подписка на уровень RSI > {rsi_level} установлена.", reply_markup=create_back_button("notifications"))
+    except ValueError as e:
+        logging.error(f"Ошибка при обработке уровня RSI: {e}")
+        bot.send_message(user_id, "Ошибка при обработке уровня RSI.", reply_markup=create_back_button("notifications"))
 
 def send_message_with_logging(user_id, text, reply_markup=None):
     logging.info(f"Отправка сообщения для user_id: {user_id}")
@@ -242,10 +257,10 @@ def alert_once_callback(call):
         alerts = load_user_alerts(user_id)
         alerts.append({"price": price_level, "permanent": False})
         save_user_alerts(user_id, alerts)
-        edit_message_with_logging(call, f"Подписка на уровень цены {price_level} USDT установлена.", create_back_button("notifications"))
+        edit_message_with_logging(call, f"Подписка на цену {price_level} USDT установлена.", create_back_button("notifications"))
     except ValueError as e:
-        logging.error(f"Ошибка при обработке уровня цены: {e}")
-        edit_message_with_logging(call, "Ошибка при обработке уровня цены.", create_back_button("notifications"))
+        logging.error(f"Ошибка при обработке цены: {e}")
+        edit_message_with_logging(call, "Ошибка при обработке цены.", create_back_button("notifications"))
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("alert_permanent_"))
 def alert_permanent_callback(call):
@@ -255,10 +270,10 @@ def alert_permanent_callback(call):
         alerts = load_user_alerts(user_id)
         alerts.append({"price": price_level, "permanent": True})
         save_user_alerts(user_id, alerts)
-        edit_message_with_logging(call, f"Постоянная подписка на уровень цены {price_level} USDT установлена.", create_back_button("notifications"))
+        edit_message_with_logging(call, f"Постоянная подписка на цену {price_level} USDT установлена.", create_back_button("notifications"))
     except ValueError as e:
         logging.error(f"Ошибка при обработке уровня цены: {e}")
-        edit_message_with_logging(call, "Ошибка при обработке уровня цены.", create_back_button("notifications"))
+        edit_message_with_logging(call, "Ошибка при обработке цены.", create_back_button("notifications"))
 
 @bot.callback_query_handler(func=lambda call: call.data == "alert_back")
 def alert_back_callback(call):
@@ -274,10 +289,10 @@ def rsi_alert_once_callback(call):
         alerts = load_user_rsi_alerts(user_id)
         alerts.append({"level": rsi_level, "permanent": False})
         save_user_rsi_alerts(user_id, alerts)
-        bot.send_message(user_id, f"Подписка на уровень RSI {rsi_level} установлена.", reply_markup=create_back_button("notifications"))
+        bot.send_message(user_id, f"Подписка на RSI {rsi_level} установлена.", reply_markup=create_back_button("notifications"))
     except ValueError as e:
         logging.error(f"Ошибка при обработке уровня RSI: {e}")
-        bot.send_message(user_id, "Ошибка при обработке уровня RSI.", reply_markup=create_back_button("notifications"))
+        bot.send_message(user_id, "Ошибка при обработке RSI.", reply_markup=create_back_button("notifications"))
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("rsi_alert_permanent_"))
 def rsi_alert_permanent_callback(call):
@@ -296,11 +311,16 @@ def delete_rsi_alert(message):
     user_id = message.chat.id
     alerts = load_user_rsi_alerts(user_id)
     if alerts:
-        alerts_text = "\n".join([f"{i+1}. {level['level']} - {'Навсегда' if level['permanent'] else 'Единично'}" for i, level in enumerate(alerts)])
-        bot.send_message(user_id, f"Ваши подписки на RSI:\n{alerts_text}\n\nВведите номер подписки, которую хотите удалить:", reply_markup=create_back_button("notifications"))
+        alerts_text = "\n".join([f"{i+1}. {level['level']} - {'<' if level['condition'] == 'below' else '>'} - {'Навсегда' if level['permanent'] else 'Единично'}" for i, level in enumerate(alerts)])
+        bot.edit_message_text(chat_id=user_id, message_id=message.message_id, text=f"Ваши подписки на RSI:\n{alerts_text}\n\nВведите номер подписки, которую хотите удалить:", reply_markup=create_back_button("notifications"))
         bot.register_next_step_handler(message, remove_rsi_alert)
     else:
-        bot.send_message(user_id, "У вас нет активных подписок на RSI.", reply_markup=create_back_button("notifications"))
+        bot.edit_message_text(chat_id=user_id, message_id=message.message_id, text="У вас нет активных подписок на RSI.", reply_markup=create_back_button("notifications"))
+
+def delete_all_rsi_alerts(message):
+    user_id = message.chat.id
+    save_user_rsi_alerts(user_id, [])
+    bot.send_message(user_id, "Все подписки на RSI удалены.", reply_markup=create_back_button("notifications"))
 
 def remove_rsi_alert(message):
     user_id = message.chat.id
@@ -320,15 +340,10 @@ def list_rsi_alerts(message):
     user_id = message.chat.id
     alerts = load_user_rsi_alerts(user_id)
     if alerts:
-        alerts_text = "\n".join([f"{i+1}. {level['level']} - {'Навсегда' if level['permanent'] else 'Единично'}" for i, level in enumerate(alerts)])
+        alerts_text = "\n".join([f"{i+1}. {level['level']} - {'<' if level['condition'] == 'below' else '>'} - {'Навсегда' if level['permanent'] else 'Единично'}" for i, level in enumerate(alerts)])
         bot.send_message(user_id, f"Ваши подписки на RSI:\n{alerts_text}", reply_markup=create_back_button("notifications"))
     else:
         bot.send_message(user_id, "У вас нет активных подписок на RSI.", reply_markup=create_back_button("notifications"))
-
-def delete_all_rsi_alerts(message):
-    user_id = message.chat.id
-    save_user_rsi_alerts(user_id, [])
-    bot.send_message(user_id, "Все подписки на RSI удалены.", reply_markup=create_back_button("notifications"))
 
 def delete_all_alerts(message):
     user_id = message.chat.id

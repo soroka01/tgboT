@@ -11,7 +11,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     filename=os.path.join(log_directory, 'bot.log'),
-    filemode='a'
+    filemode='w'
 )
 
 # Создание обработчика для логирования ошибок в консоль

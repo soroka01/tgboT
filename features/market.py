@@ -3,7 +3,12 @@ from cfg import symb, bykey, bysecret
 import matplotlib.pyplot as plt
 import io
 import requests
+import numpy as np
 from logs.logging_config import logging
+from datetime import datetime, timedelta
+from cfg import tgID, tgtoken
+from bot_instance import bot
+from database import load_user_rsi_alerts
 
 # Создание сессии для работы с Bybit API
 session = HTTP(testnet=False, api_key=bykey, api_secret=bysecret)
@@ -34,12 +39,48 @@ def get_price_or_change(PriceOrDailyChange):
     if PriceOrDailyChange == 'change':
         return f"{round(((close_price - open_price) / close_price) * 100, 2)}%"
 
+# Функция для вычисления RSI
+def calculate_rsi(timeframe):
+    logging.info(f"Вычисление RSI за таймфрейм: {timeframe}")
+    try:
+        klines = session.get_kline(category="spot", symbol=symb, interval=timeframe, limit=100).get('result', {}).get('list', [])
+        close_prices = [float(kline[4]) for kline in klines]
+        close_prices = np.array(list(reversed(close_prices)), dtype='float')
+        
+        n = 14
+        deltas = np.diff(close_prices)
+        seed = deltas[:n+1]
+        up = seed[seed >= 0].sum() / n
+        down = -seed[seed < 0].sum() / n
+        rs = up / down
+        rsi = np.zeros_like(close_prices)
+        rsi[:n] = 100. - 100. / (1. + rs)
+        
+        for i in range(n, len(close_prices)):
+            delta = deltas[i - 1]
+            if delta > 0:
+                upval = delta
+                downval = 0.
+            else:
+                upval = 0.
+                downval = -delta
+            
+            up = (up * (n - 1) + upval) / n
+            down = (down * (n - 1) + downval) / n
+            
+            rs = up / down
+            rsi[i] = 100. - 100. / (1. + rs)
+        
+        return round(rsi[-1], 2)
+    except Exception as e:
+        logging.error(f"Ошибка при вычислении RSI: {e}")
+        return "Ошибка при вычислении RSI"
+
 # Функция для получения соотношения покупок и продаж
 def get_buy_sell_ratio(timeframe):
     logging.info(f"Получение соотношения покупок и продаж за таймфрейм: {timeframe}")
     periods = {60: "1h", "D": "1d"}
     url = f"https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period={periods.get(timeframe, '1h')}&limit=1"
-    
     try:
         response = requests.get(url).json()
         data = response.get('result', {}).get('list', [{}])[0]
@@ -88,3 +129,50 @@ def get_last_5_weeks_and_low_price():
     except Exception as e:
         logging.error(f"Ошибка при получении данных за последние 5 недель и минимальной цены: {e}")
         return None, None
+
+# Хранение времени последнего уведомления для каждого пользователя
+last_notification_time = {}
+
+def check_rsi_and_notify():
+    logging.info("Проверка RSI и отправка уведомлений")
+    rsi = calculate_rsi("1")
+    if isinstance(rsi, str):
+        return  # Если произошла ошибка при расчете RSI, ничего не делаем
+    
+    current_time = datetime.now()
+    for user_id in tgID:
+        try:
+            alerts = load_user_rsi_alerts(user_id)
+            for alert in alerts:
+                if alert['condition'] == 'below' and rsi < alert['level']:
+                    send_rsi_notification(user_id, rsi, f"RSI меньше {alert['level']}")
+                elif alert['condition'] == 'above' and rsi > alert['level']:
+                    send_rsi_notification(user_id, rsi, f"RSI больше {alert['level']}")
+            
+            last_notification_time[user_id] = current_time  # Обновляем время последнего уведомления
+        except Exception as e:
+            logging.error(f"Ошибка при отправке уведомления для user_id {user_id}: {e}")
+
+def send_rsi_notification(user_id, rsi, title):
+    try:
+        screenshot, lowprice14d = get_last_5_weeks_and_low_price()
+        current_price = get_price_or_change('price')
+        
+        if lowprice14d is None or current_price is None:
+            raise ValueError("Не удалось получить необходимые данные.")
+        
+        change_percent = round((float(current_price) - lowprice14d) / lowprice14d * 100, 2)
+        buy_sell_ratio = get_buy_sell_ratio("1")
+        
+        caption = (
+            f"{title}\n"
+            f"📉 Изменение за 14 дней: {change_percent}%\n"
+            f"📊 RSI: {rsi}\n"
+            f"📈 {buy_sell_ratio}\n"
+            f"💲 Текущая цена BTC: {current_price} USDT"
+        )
+        
+        bot.send_photo(chat_id=user_id, photo=screenshot, caption=caption)
+    except Exception as e:
+        logging.error(f"Ошибка при отправке уведомления для user_id {user_id}: {e}")
+        bot.send_message(user_id, f"⚠️ Ошибка при отправке уведомления: {e}")
